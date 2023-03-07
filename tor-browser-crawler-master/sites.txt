@@ -1,0 +1,7 @@
+# lines# lines beginning with pound are ignored (like python)
+# this can be used for documentation
+
+apple
+banana
+kiwi
+mango
