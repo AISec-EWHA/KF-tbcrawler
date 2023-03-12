@@ -175,7 +175,7 @@ class Crawler(object):
                                     direction='-'
                                 length = int(packet.tcp.len)
                                 if length >= 512:
-                                    conversations.append("{:.2f}\t{}{}{}\n".format(timestamp, direction, length))
+                                    conversations.append("{:.2f}\t{}{}\n".format(timestamp, direction, length))
                             outfile.write(''.join(conversations))
                             
                             #subprocess.run(["tshark", "-r", self.job.pcap_file, "-T", "fields", "-e", "frame.time_relative", "-e", "tcp.len", "-E", "header=n", "-E", "separator=\t", "-E", "occurrence=f"], stdout=outfile, check=True) #커멘드 상에서 tshark 사용
