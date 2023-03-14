@@ -1,5 +1,5 @@
 import sys
-import subprocess
+import pyshark
 from os.path import join, split, getsize
 from os import remove
 from pprint import pformat
@@ -23,6 +23,11 @@ from selenium.webdriver.common.action_chains import ActionChains
 #added action chains for clicking element
 from bs4 import BeautifulSoup
 
+import zipfile
+import os
+from pathlib import Path
+import shutil
+
 class Crawler(object):
     def __init__(self, driver, controller, screenshots=True, device="eth0"):
         self.driver = driver
@@ -40,6 +45,39 @@ class Crawler(object):
             wl_log.info("**** Starting batch %s ***" % self.job.batch)
             self.controller.restart_tor()
             self._do_batch()
+            ##################################################################################################################
+            """
+            make zip file and send it to server
+            1. zip all files in result folder
+            2. send it to server
+            3. delete result folder
+            """
+
+            """ make zip file """
+            file_path = cm.CRAWL_DIR # RESULTS_DIR = join(BASE_DIR, 'results')
+            owd = os.getcwd()
+            os.chdir(file_path)
+            zip_file = zipfile.ZipFile(join(file_path, "batch" + str(self.job.batch) + ".zip"), "w")
+            for (path, dir, files) in os.walk(file_path):
+                for file in files:
+                    zip_file.write(os.path.join(os.path.relpath(path, file_path), file), compress_type = zipfile.ZIP_DEFLATED)
+            """for path in Path(file_path).rglob("*"):
+                zip_file.write(path, compress_type = zipfile.ZIP_DEFLATED)"""
+            zip_file.close()
+            sleep(1)
+            """ send zip file to server """
+
+            """ remove results """
+            #shutil.rmtree(file_path)
+            for files in os.listdir(file_path):
+                path = os.path.join(file_path, files)
+                if "logs" not in str(path):
+                    try :
+                        shutil.rmtree(path)
+                    except OSError:
+                        os.remove(path)
+            os.chdir(owd)
+            ##########################################################################################################
             sleep(float(self.job.config['pause_between_batches']))
 
     def post_visit(self):
@@ -165,7 +203,20 @@ class Crawler(object):
                         ##################################################################################
                         # analyze pcap file
                         with open(self.job.output_file(self.job.site, self.job.batch*self.job.visits+self.job.visit), 'w') as outfile:
-                            subprocess.run(["tshark", "-r", self.job.pcap_file, "-T", "fields", "-e", "frame.time_relative", "-e", "tcp.len", "-E", "header=n", "-E", "separator=\t", "-E", "occurrence=f"], stdout=outfile, check=True)
+                            capture = pyshark.FileCapture(self.job.pcap_file)
+                            conversations = []
+                            for packet in capture:
+                                timestamp = float(packet.frame_info.time_relative) #delta time
+                                direction=" "
+                                source_address = packet.ip.src
+                                if "10.0." not in source_address: # 10.0 부분은 vm마다 다를 수 있으므로, 확인 필요
+                                    direction='-'
+                                length = int(packet.tcp.len)
+                                if length >= 512:
+                                    conversations.append("{:.2f}\t{}{}\n".format(timestamp, direction, length))
+                            outfile.write(''.join(conversations))
+                            
+                            #subprocess.run(["tshark", "-r", self.job.pcap_file, "-T", "fields", "-e", "frame.time_relative", "-e", "tcp.len", "-E", "header=n", "-E", "separator=\t", "-E", "occurrence=f"], stdout=outfile, check=True) #커멘드 상에서 tshark 사용
                         # delete pcap file after analysis
                         # remove(self.job.pcap_file)
                         # remove(self.job.pcap_file_original)
@@ -228,6 +279,7 @@ class CrawlJob(object):
         
     def output_file(self, keywordIndex, instanceIndex):
         return join(self.path, "{}-{}.txt".format(keywordIndex, instanceIndex))
+
     ########################################################################################
 
     def __repr__(self):
