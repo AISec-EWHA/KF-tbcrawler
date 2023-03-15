@@ -117,8 +117,6 @@ class TorController(object):
 
     @contextmanager
     def launch(self):
-        wl_log.warning("TorController에서 launch 하는 중")
         self.launch_tor_service()
         yield
         self.quit()
-        wl_log.warning("TorController에서 launch 완료")
