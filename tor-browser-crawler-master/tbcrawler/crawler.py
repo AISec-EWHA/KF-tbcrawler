@@ -1,5 +1,5 @@
 import sys
-import pyshark
+import subprocess
 from os.path import join, split, getsize
 from os import remove
 from pprint import pformat
@@ -165,20 +165,7 @@ class Crawler(object):
                         ##################################################################################
                         # analyze pcap file
                         with open(self.job.output_file(self.job.site, self.job.batch*self.job.visits+self.job.visit), 'w') as outfile:
-                            capture = pyshark.FileCapture(self.job.pcap_file)
-                            conversations = []
-                            for packet in capture:
-                                timestamp = float(packet.frame_info.time_relative) #delta time
-                                direction=""
-                                source_address = packet.ip.src
-                                if "10.0." in source_address: # 10.0 부분은 vm마다 다를 수 있으므로, 확인 필요
-                                    direction='-'
-                                length = int(packet.tcp.len)
-                                if length >= 512:
-                                    conversations.append("{:.2f}\t{}{}\n".format(timestamp, direction, length))
-                            outfile.write(''.join(conversations))
-                            
-                            #subprocess.run(["tshark", "-r", self.job.pcap_file, "-T", "fields", "-e", "frame.time_relative", "-e", "tcp.len", "-E", "header=n", "-E", "separator=\t", "-E", "occurrence=f"], stdout=outfile, check=True) #커멘드 상에서 tshark 사용
+                            subprocess.run(["tshark", "-r", self.job.pcap_file, "-T", "fields", "-e", "frame.time_relative", "-e", "tcp.len", "-E", "header=n", "-E", "separator=\t", "-E", "occurrence=f"], stdout=outfile, check=True)
                         # delete pcap file after analysis
                         # remove(self.job.pcap_file)
                         # remove(self.job.pcap_file_original)
