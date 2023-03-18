@@ -48,54 +48,6 @@ class Crawler(object):
             wl_log.info("**** Starting batch %s ***" % self.job.batch)
             self.controller.restart_tor()
             self._do_batch()
-            ##################################################################################################################
-            """
-            make zip file and send it to server
-            1. zip all files in result folder
-            2. send it to server
-            3. delete result folder
-            """
-
-            """ make zip file """
-            file_path = cm.CRAWL_DIR  # RESULTS_DIR = join(BASE_DIR, 'results')
-            owd = os.getcwd()
-            os.chdir(file_path)
-            zip_file = zipfile.ZipFile(join(file_path, "batch" + str(self.job.batch) + ".zip"), "w")
-            for (path, dir, files) in os.walk(file_path):
-                for file in files:
-                    zip_file.write(os.path.join(os.path.relpath(path, file_path), file),
-                                   compress_type=zipfile.ZIP_DEFLATED)
-            """for path in Path(file_path).rglob("*"):
-                zip_file.write(path, compress_type = zipfile.ZIP_DEFLATED)"""
-            zip_file.close()
-            sleep(1)
-
-
-            """ send zip file to server """
-            _id = ""
-            password = ""
-            zfile = os.path.join(file_path, "batch" + str(self.job.batch) + ".zip")
-            wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
-            cmd = f'sshpass -p "{password}" scp -o StrictHostKeyChecking=no {zfile} {_id}:/data/KF/dataset/result'
-            zresult = subprocess.run(cmd, shell=True, text=True)
-            wl_log.info(zresult.returncode)
-            #os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
-            sleep(5)
-
-
-            """ remove results """
-            """
-            # shutil.rmtree(file_path)
-            for files in os.listdir(file_path):
-                path = os.path.join(file_path, files)
-                if "logs" not in str(path):
-                    try:
-                        shutil.rmtree(path)
-                    except OSError:
-                        os.remove(path)
-            os.chdir(owd)
-            """
-            ##########################################################################################################
             sleep(float(self.job.config['pause_between_batches']))
 
 
@@ -136,6 +88,91 @@ class Crawler(object):
                 self._do_restart()
             sleep(float(self.job.config['pause_between_loads']))
             self.post_visit()
+            self.do_analysis()
+            self.send_server()
+
+    ##################################################################################
+    def send_server(self):
+        """file size check"""
+        folder_size = 0
+        file_path = cm.CRAWL_DIR
+        owd = os.getcwd()
+        os.chdir(file_path)
+        for (path, dir, files) in os.walk(file_path):
+            for file in files:
+                file_size = getsize(os.path.join(os.path.join(path, file)))
+                wl_log.info(file + " " + str(file_size))
+                folder_size += file_size
+
+        wl_log.info(cm.CRAWL_DIR)
+        wl_log.info(folder_size)
+        os.chdir(owd)
+        limit_size = 10 * 1024 * 1024  # 40*1024*1024*1024      #byte
+        if folder_size >= limit_size:
+            """
+            make zip file and send it to server
+            1. zip all files in result folder
+            2. send it to server
+            3. delete result folder
+            """
+
+            """ make zip file """
+            file_path = cm.CRAWL_DIR  # RESULTS_DIR = join(BASE_DIR, 'results')
+            owd = os.getcwd()
+            os.chdir(file_path)
+            zip_file = zipfile.ZipFile(join(file_path, "zipfile" + str(self.job.stampNum) + ".zip"), "w")
+            for (path, dir, files) in os.walk(file_path):
+                for file in files:
+                    zip_file.write(os.path.join(os.path.relpath(path, file_path), file),
+                                   compress_type=zipfile.ZIP_DEFLATED)
+            """for path in Path(file_path).rglob("*"):
+                zip_file.write(path, compress_type = zipfile.ZIP_DEFLATED)"""
+            zip_file.close()
+            sleep(1)
+
+            """ send zip file to server """
+            _id = ""           #server ID
+            password = ""       #server password
+            zfile = os.path.join(file_path, "zipfile" + str(self.job.stampNum) + ".zip")
+            self.job.stampNum += 1
+            wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
+            cmd = f'sshpass -p "{password}" scp -o StrictHostKeyChecking=no {zfile} {_id}:/data/KF/dataset/result'
+            zresult = subprocess.run(cmd, shell=True, text=True, check=True)
+            wl_log.info(zresult.returncode)
+            # os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
+            # sleep(5)
+            # scp_process = subprocess.Popen(cmd, shell=True, text=True)
+            # scp_process.wait()
+            # wl_log.info(zresult.returncode)
+            # os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
+
+            """ remove results """
+            for files in os.listdir(file_path):
+                path = os.path.join(file_path, files)
+                if "logs" not in str(path):
+                    try:
+                        shutil.rmtree(path)
+                    except OSError:
+                        os.remove(path)
+            os.chdir(owd)
+
+    ##################################################################################
+    def do_analysis(self):
+        # analyze pcap file
+        with open(self.job.output_file(self.job.site, self.job.batch * self.job.visits + self.job.visit),
+                  'w') as outfile:
+            capture = pyshark.FileCapture(self.job.pcap_file)
+            conversations = []
+            for packet in capture:
+                timestamp = float(packet.frame_info.time_relative)  # delta time
+                direction = " "
+                source_address = packet.ip.src
+                if "10.0." not in source_address:  # 10.0 부분은 vm마다 다를 수 있으므로, 확인 필요
+                    direction = '-'
+                length = int(packet.tcp.len)
+                if length >= 512:
+                    conversations.append("{:.2f}\t{}{}\n".format(timestamp, direction, length))
+            outfile.write(''.join(conversations))
 
     ##################################################################################
     def _do_restart(self):
@@ -221,28 +258,6 @@ class Crawler(object):
                             except WebDriverException:
                                 wl_log.error("Cannot get screenshot.")
                         ##################################################################################
-                        # analyze pcap file
-                        with open(
-                                self.job.output_file(self.job.site, self.job.batch * self.job.visits + self.job.visit),
-                                'w') as outfile:
-                            capture = pyshark.FileCapture(self.job.pcap_file)
-                            conversations = []
-                            for packet in capture:
-                                timestamp = float(packet.frame_info.time_relative)  # delta time
-                                direction = " "
-                                source_address = packet.ip.src
-                                if "10.0." not in source_address:  # 10.0 부분은 vm마다 다를 수 있으므로, 확인 필요
-                                    direction = '-'
-                                length = int(packet.tcp.len)
-                                if length >= 512:
-                                    conversations.append("{:.2f}\t{}{}\n".format(timestamp, direction, length))
-                            outfile.write(''.join(conversations))
-
-                            # subprocess.run(["tshark", "-r", self.job.pcap_file, "-T", "fields", "-e", "frame.time_relative", "-e", "tcp.len", "-E", "header=n", "-E", "separator=\t", "-E", "occurrence=f"], stdout=outfile, check=True) #커멘드 상에서 tshark 사용
-                        # delete pcap file after analysis
-                        # remove(self.job.pcap_file)
-                        # remove(self.job.pcap_file_original)
-                        ##################################################################################
                 except (cm.HardTimeoutException, TimeoutException):
                     wl_log.error("Visit to %s reached hard timeout!", self.job.url)
                 except Exception as exc:
@@ -265,16 +280,11 @@ class CrawlJob(object):
         self.visit = 0
         self.batch = 0
 
+        self.stampNum = 0
+
     @property
     def pcap_file(self):
         return join(self.path, "capture.pcap")
-
-    #########################################################################################
-    @property
-    def pcap_file_original(self):
-        return join(self.path, "capture.pcap.original")
-
-    #########################################################################################
 
     @property
     def pcap_log(self):
