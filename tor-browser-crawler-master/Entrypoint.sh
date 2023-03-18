@@ -11,6 +11,7 @@ BASE='/home/docker/tbcrawl'
 # set offloads
 #ifconfig $2 mtu 1500
 sudo apt update
+sudo apt install sshpass
 sudo apt install iproute2
 ip link set dev $2 mtu 1500
 ethtool -K $2 tx off rx off tso off gso off gro off lro off
