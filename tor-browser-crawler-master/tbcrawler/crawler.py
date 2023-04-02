@@ -107,7 +107,7 @@ class Crawler(object):
         wl_log.info(cm.CRAWL_DIR)
         wl_log.info(folder_size)
         os.chdir(owd)
-        limit_size = 10 * 1024 * 1024  # 40*1024*1024*1024      #byte
+        limit_size = 30*1024*1024*1024      #byte
         if folder_size >= limit_size:
             """
             make zip file and send it to server
@@ -123,8 +123,10 @@ class Crawler(object):
             zip_file = zipfile.ZipFile(join(file_path, "zipfile" + str(self.job.stampNum) + ".zip"), "w")
             for (path, dir, files) in os.walk(file_path):
                 for file in files:
-                    zip_file.write(os.path.join(os.path.relpath(path, file_path), file),
-                                   compress_type=zipfile.ZIP_DEFLATED)
+                    wl_log.info(file)
+                    if ("html_" in file) or ("txt_" in file):
+                        wl_log.info(file)
+                        zip_file.write(os.path.join(os.path.relpath(path, file_path), file), compress_type=zipfile.ZIP_DEFLATED)
             """for path in Path(file_path).rglob("*"):
                 zip_file.write(path, compress_type = zipfile.ZIP_DEFLATED)"""
             zip_file.close()
@@ -135,8 +137,8 @@ class Crawler(object):
             password = ""       #server password
             zfile = os.path.join(file_path, "zipfile" + str(self.job.stampNum) + ".zip")
             self.job.stampNum += 1
-            wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
-            cmd = f'sshpass -p "{password}" scp -o StrictHostKeyChecking=no {zfile} {_id}:/data/KF/dataset/result'
+            wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result/')
+            cmd = f'sshpass -p "{password}" scp -o StrictHostKeyChecking=no {zfile} {_id}:/data/KF/dataset/result/'
             zresult = subprocess.run(cmd, shell=True, text=True, check=True)
             wl_log.info(zresult.returncode)
             # os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
@@ -144,9 +146,9 @@ class Crawler(object):
             # scp_process = subprocess.Popen(cmd, shell=True, text=True)
             # scp_process.wait()
             # wl_log.info(zresult.returncode)
-            # os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
+            # os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result') 
 
-            """ remove results """
+            """ remove results 
             for files in os.listdir(file_path):
                 path = os.path.join(file_path, files)
                 if "logs" not in str(path):
@@ -154,12 +156,12 @@ class Crawler(object):
                         shutil.rmtree(path)
                     except OSError:
                         os.remove(path)
-            os.chdir(owd)
+            os.chdir(owd) """
 
     ##################################################################################
     def do_analysis(self):
         # analyze pcap file
-        with open(self.job.output_file(self.job.site, self.job.batch * self.job.visits + self.job.visit),
+        with open(self.job.output_file(self.job.batch, self.job.site, self.job.batch * self.job.visits + self.job.visit),
                   'w') as outfile:
             capture = pyshark.FileCapture(self.job.pcap_file)
             conversations = []
@@ -173,6 +175,7 @@ class Crawler(object):
                 if length >= 512:
                     conversations.append("{:.2f}\t{}{}\n".format(timestamp, direction, length))
             outfile.write(''.join(conversations))
+            #if len(outfile.readlines()) < 100:
 
     ##################################################################################
     def _do_restart(self):
@@ -240,9 +243,9 @@ class Crawler(object):
                         html_source = html_source.encode('utf-8').decode('ascii', 'ignore')
                         soup = BeautifulSoup(html_source, "lxml")
 
-                        with open(self.job.html_file(screenshot_count), 'w') as f_html:
+                        with open(self.job.html_file(self.job.batch, self.job.site, self.job.batch * self.job.visits + self.job.visit), 'w') as f_html:
                             f_html.write(soup.prettify())
-                        b = getsize(self.job.html_file(screenshot_count))
+                        b = getsize(self.job.html_file(self.job.batch, self.job.site, self.job.batch * self.job.visits + self.job.visit))
                         print("out_png size->" + str(b))
                         if b <= 10000:  # smaller than 10kb
                             isCaptcha = True
@@ -250,7 +253,7 @@ class Crawler(object):
                             return isCaptcha
                         ##################################################################################
                         # take first screenshot
-                        sleep(3)
+                        sleep(6)
                         if self.screenshots:
                             try:
                                 self.driver.get_screenshot_as_file(self.job.png_file(screenshot_count))
@@ -307,11 +310,11 @@ class CrawlJob(object):
         return join(self.path, "screenshot_{}.png".format(time))
 
     #########################################################################################
-    def html_file(self, time):
-        return join(self.path, "html_{}.html".format(time))
+    def html_file(self, batchIndex, keywordIndex, instanceIndex):
+        return join(self.path, "html_{}-{}-{}.html".format(batchIndex, keywordIndex, instanceIndex))
 
-    def output_file(self, keywordIndex, instanceIndex):
-        return join(self.path, "{}-{}.txt".format(keywordIndex, instanceIndex))
+    def output_file(self, batchIndex, keywordIndex, instanceIndex):
+        return join(self.path, "txt_{}-{}-{}.txt".format(batchIndex, keywordIndex, instanceIndex))
 
     ########################################################################################
 
