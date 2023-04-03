@@ -101,13 +101,13 @@ class Crawler(object):
         for (path, dir, files) in os.walk(file_path):
             for file in files:
                 file_size = getsize(os.path.join(os.path.join(path, file)))
-                wl_log.info(file + " " + str(file_size))
+                #wl_log.info(file + " " + str(file_size))
                 folder_size += file_size
 
         wl_log.info(cm.CRAWL_DIR)
         wl_log.info(folder_size)
         os.chdir(owd)
-        limit_size = 30*1024*1024*1024      #byte
+        limit_size = 25*1024*1024*1024      #byte
         if folder_size >= limit_size:
             """
             make zip file and send it to server
@@ -123,9 +123,7 @@ class Crawler(object):
             zip_file = zipfile.ZipFile(join(file_path, "zipfile" + str(self.job.stampNum) + ".zip"), "w")
             for (path, dir, files) in os.walk(file_path):
                 for file in files:
-                    wl_log.info(file)
                     if ("html_" in file) or ("txt_" in file):
-                        wl_log.info(file)
                         zip_file.write(os.path.join(os.path.relpath(path, file_path), file), compress_type=zipfile.ZIP_DEFLATED)
             """for path in Path(file_path).rglob("*"):
                 zip_file.write(path, compress_type = zipfile.ZIP_DEFLATED)"""
@@ -137,8 +135,8 @@ class Crawler(object):
             password = ""       #server password
             zfile = os.path.join(file_path, "zipfile" + str(self.job.stampNum) + ".zip")
             self.job.stampNum += 1
-            wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result/')
-            cmd = f'sshpass -p "{password}" scp -o StrictHostKeyChecking=no {zfile} {_id}:/data/KF/dataset/result/'
+            wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result/vm')
+            cmd = f'sshpass -p "{password}" scp -o StrictHostKeyChecking=no {zfile} {_id}:/data/KF/dataset/result/vm'
             zresult = subprocess.run(cmd, shell=True, text=True, check=True)
             wl_log.info(zresult.returncode)
             # os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
@@ -208,7 +206,7 @@ class Crawler(object):
                         # self.driver.get('http://www.duckduckgo.com') #duckduckgo
 
                         wait = WebDriverWait(self.driver, 3)
-                        sleep(1)  # do not change - wait until web page is loaded
+                        sleep(5)  # do not change - wait until web page is loaded
 
                         try:
                             """
@@ -235,8 +233,9 @@ class Crawler(object):
                             sleep(10)  # bing, duckduckgo
 
                         except (ElementNotVisibleException, NoSuchElementException, TimeoutException):
-                            result = "CAPTCHA"
                             print("Exception!")
+                            isCaptcha = True
+                            return isCaptcha
                         ##################################################################################
                         # check html file size
                         html_source = self.driver.page_source
@@ -247,24 +246,30 @@ class Crawler(object):
                             f_html.write(soup.prettify())
                         b = getsize(self.job.html_file(self.job.batch, self.job.site, self.job.batch * self.job.visits + self.job.visit))
                         print("out_png size->" + str(b))
-                        if b <= 10000:  # smaller than 10kb
+                        if b <= 270000:  # smaller than 270kb
+                            print("No Result!")
                             isCaptcha = True
-                            print("CAPTCHA!")
                             return isCaptcha
                         ##################################################################################
                         # take first screenshot
-                        sleep(6)
+                        sleep(2)
                         if self.screenshots:
                             try:
                                 self.driver.get_screenshot_as_file(self.job.png_file(screenshot_count))
                                 screenshot_count += 1
                             except WebDriverException:
                                 wl_log.error("Cannot get screenshot.")
+                                isCaptcha = True
+                                return isCaptcha
                         ##################################################################################
                 except (cm.HardTimeoutException, TimeoutException):
                     wl_log.error("Visit to %s reached hard timeout!", self.job.url)
+                    isCaptcha = True
+                    return isCaptcha
                 except Exception as exc:
                     wl_log.error("Unknown exception: %s", exc)
+                    isCaptcha = True
+                    return isCaptcha
             else:
                 isCaptcha = True
                 wl_log.error("CAPTCHA!")
