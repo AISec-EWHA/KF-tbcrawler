@@ -108,7 +108,7 @@ class Crawler(object):
         wl_log.info(folder_size)
         os.chdir(owd)
         limit_size = 25*1024*1024*1024      #byte
-        if folder_size >= limit_size:
+        if (folder_size >= limit_size) or ( self.job.batch == self.job.batches-1 and self.job.site == len(self.job.urls)-1 and self.job.visit == self.job.visits-1):
             """
             make zip file and send it to server
             1. zip all files in result folder
