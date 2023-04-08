@@ -146,7 +146,7 @@ class Crawler(object):
             # wl_log.info(zresult.returncode)
             # os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result') 
 
-            """ remove results 
+            """ remove results """
             for files in os.listdir(file_path):
                 path = os.path.join(file_path, files)
                 if "logs" not in str(path):
@@ -154,7 +154,7 @@ class Crawler(object):
                         shutil.rmtree(path)
                     except OSError:
                         os.remove(path)
-            os.chdir(owd) """
+            os.chdir(owd) 
 
     ##################################################################################
     def do_analysis(self):
