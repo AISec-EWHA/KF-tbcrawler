@@ -180,11 +180,10 @@ class Crawler(object):
         """
         Must restart Tor process and revisit keyword if there is CAPTCHA
         """
-        if self._do_visit() is True:
+        while self._do_visit() is True:
             wl_log.warning("*** restarting Tor process ***")
             self.controller.restart_tor()
             wl_log.warning("restarted Tor process")
-            self._do_restart()
 
     ##################################################################################
 
@@ -246,7 +245,7 @@ class Crawler(object):
                             f_html.write(soup.prettify())
                         b = getsize(self.job.html_file(self.job.batch, self.job.site, self.job.batch * self.job.visits + self.job.visit))
                         print("out_png size->" + str(b))
-                        if b <= 270000:  # smaller than 270kb
+                        if b <= 265000:  # smaller than 265kb
                             print("No Result!")
                             isCaptcha = True
                             return isCaptcha
