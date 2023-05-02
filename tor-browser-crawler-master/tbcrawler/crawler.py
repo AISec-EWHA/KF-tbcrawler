@@ -38,6 +38,7 @@ class Crawler(object):
         self.screenshots = screenshots
         self.device = device
         self.job = None
+        sys.setrecursionlimit(10000)
 
     def crawl(self, job):
         """Crawls a set of urls in batches."""
@@ -107,7 +108,7 @@ class Crawler(object):
         wl_log.info(cm.CRAWL_DIR)
         wl_log.info(folder_size)
         os.chdir(owd)
-        limit_size = 25*1024*1024*1024      #byte
+        limit_size = 10*1024*1024*1024      #byte
         if (folder_size >= limit_size) or ( self.job.batch == self.job.batches-1 and self.job.site == len(self.job.urls)-1 and self.job.visit == self.job.visits-1):
             """
             make zip file and send it to server
@@ -131,12 +132,12 @@ class Crawler(object):
             sleep(1)
 
             """ send zip file to server """
-            _id = ""           #server ID
-            password = ""       #server password
+            _id = "jiwoo0914@203.255.178.196"           #server ID
+            password = "lucia02!"       #server password
             zfile = os.path.join(file_path, "zipfile" + str(self.job.stampNum) + ".zip")
             self.job.stampNum += 1
-            wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result/vm')
-            cmd = f'sshpass -p "{password}" scp -o StrictHostKeyChecking=no {zfile} {_id}:/data/KF/dataset/result/vm'
+            wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result/vm03')
+            cmd = f'sshpass -p "{password}" scp -o StrictHostKeyChecking=no {zfile} {_id}:/data/KF/dataset/result/vm03'
             zresult = subprocess.run(cmd, shell=True, text=True, check=True)
             wl_log.info(zresult.returncode)
             # os.system(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result')
@@ -169,7 +170,10 @@ class Crawler(object):
                 source_address = packet.ip.src
                 if "10.0." not in source_address:  # 10.0 부분은 vm마다 다를 수 있으므로, 확인 필요
                     direction = '-'
-                length = int(packet.tcp.len)
+                try:
+                    length = int(packet.tcp.len)
+                except AttributeError:
+                    continue
                 if length >= 512:
                     conversations.append("{:.2f}\t{}{}\n".format(timestamp, direction, length))
             outfile.write(''.join(conversations))
@@ -180,10 +184,16 @@ class Crawler(object):
         """
         Must restart Tor process and revisit keyword if there is CAPTCHA
         """
+        restart_limit = 0
+        
         while self._do_visit() is True:
+            if restart_limit == 10 :
+                wl_log.info(str(self.job.batch) + '_' + str(self.job.site) + '_' + str(self.job.batch * self.job.visits + self.job.visit) + " : faulty visit ")
+                break
             wl_log.warning("*** restarting Tor process ***")
             self.controller.restart_tor()
             wl_log.warning("restarted Tor process")
+            restart_limit += 1
 
     ##################################################################################
 
