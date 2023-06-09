@@ -132,8 +132,8 @@ class Crawler(object):
             sleep(1)
 
             """ send zip file to server """
-            _id = "jiwoo0914@203.255.178.196"           #server ID
-            password = "lucia02!"       #server password
+            _id = ""           #server ID
+            password = ""       #server password
             zfile = os.path.join(file_path, "zipfile" + str(self.job.stampNum) + ".zip")
             self.job.stampNum += 1
             wl_log.info(f'sshpass -p "{password}" scp {zfile} {_id}:/data/KF/dataset/result/vm03')
