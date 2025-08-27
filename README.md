@@ -1,52 +1,46 @@
-# KF-tbcrawler
+<h1 align='center' style="text-align:center; font-weight:bold; font-size:2.0em;letter-spacing:2.0px;"> Enhancing Search Privacy on Tor: Advanced Deep Keyword Fingerprinting Attacks and BurstGuard Defense </h1>
 
-# **🗒️**Instroduction
+<p align='center' style="text-align:center; font-weight:bold; font-size:2.0em;letter-spacing:2.0px;"> <b> Chai Won Hwang*,  Hae Seung Jeon*, Ji Woo Hong, Ho Sung Kang, Nate Mathews, Goun Kim, and Se Eun Oh† </b> </p>
 
-KF-tbcrawler의 디렉토리 구조는 다음과 같습니다:
+<p align='center' style="text-align:center; font-size:2.0em;letter-spacing:2.0px;"> *Equally credited authors. †Corresponding author. </p>
 
-```
-tor-browser-crawler-master
-├── 📁bin
-│   └── tbcrawler.py
-├── 📁tbcrawler
-│   ├── __init__.py
-│   ├── common.py
-│   ├── crawler.py #screenshot chapture
-│   ├── dumputils.py
-│   ├── log.py
-│   ├── pytbcrawler.py
-│   ├── torcontroller.py #Tor network interface
-│   └── style.css
-├── Dockerfile #docker container 내부에서 crawler 실행 관리
-├── Entrypoint.sh #Docker container의 실행 관리
-├── Makefile #build와 run 설정
-├── config.ini #batches와 visits 수 설정
-├── requirements.txt #프로젝트 내에 import 할 라이브러리 관리
-├── setup.py
-└── sites.txt #Keywordlist
-```
 
-# **⚙️**Settings
+> [!NOTE]
+> This is the **Keyword Fingerprinting Crawler** used in *Enhancing Search Privacy on Tor: Advanced Deep Keyword Fingerprinting Attacks and BurstGuard Defense* work, presented in the ASIACCS'25.
 
-KeywordFingerprinting 프로젝트를 사용하기 위해 다음과 같은 Docker 설정이 필요합니다:
 
-### **Docker Ubuntu Linux installation**
+## 1. Environment
+
+For KF-Crawler, we used Ubuntu 20.04 LTS VM on a Windows 10 desktop, installed using Oracle VirtualBox. We recommend having a minimum of 64GB of storage and 2048 MB of memory.
+
+
+## 2. Prerequisites and Settings
+
+### 2-1. Docker Installation
+
+KF-Crawler is run in the Docker environment, which can be installed by:
 
 ```bash
-sudo apt-get update
-sudo apt-get install docker.io
-sudo systemctl start docker
-sudo systemctl enable docker
+$ sudo apt-get update
+$ sudo apt-get install docker.io
+$ sudo systemctl start docker
+$ sudo systemctl enable docker
 ```
 
-### Give permission to “/var/run/docker.sock”
+### 2-2. Network Setting
+
+Check device number using the `ifconfig` command, and update the `DEVICE` variable with your device number in the `Makefile`.
 
 ```bash
-sudo chmod -R 777 /var/run/docker.sock
+$ ifconfig
 ```
 
-### Give permission to “home/docker/tbcrawl/Entrypoint.sh”
+## 3. Keywords
 
-```bash
-sudo chmod +x Entrypoint.sh
-```
+For our work, we utilized the [Keyword Tool website](https://keywordtool.io/) to extract the top 273 frequently searched keywords as monitored keywords. However, you can change the `top_273.txt` file for any keywords you want to visit.
+
+## 4. Contacts
+Please contact us if you have any questions about KF-Crawler.
+
+- Haeseung Jeon, haeseungjeon@ewha.ac.kr
+- Se Eun Oh, seoh@ewha.ac.kr
