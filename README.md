@@ -6,7 +6,7 @@
 
 
 > [!NOTE]
-> This is the **Keyword Fingerprinting Crawler** used in *Enhancing Search Privacy on Tor: Advanced Deep Keyword Fingerprinting Attacks and BurstGuard Defense* work, presented in the ASIACCS'25.
+> This is the **Keyword Fingerprinting Tor Browser Crawler** used in *Enhancing Search Privacy on Tor: Advanced Deep Keyword Fingerprinting Attacks and BurstGuard Defense* work, presented in the ASIACCS'25.
 
 
 ## 1. Environment
@@ -33,14 +33,53 @@ Check device number using the `ifconfig` command, and update the `DEVICE` variab
 
 ```bash
 $ ifconfig
+>>> enp0s3: ...
 ```
+
+```Makefile
+DEVICE=enp0s3 # enp0s3 is just an example, so change this to your device number
+```
+
+### 2-3. Important Settings
+You can set your server username/password, search engine, and the packet direction in the `tbcrawler/crawler.py` file.
+
+
+```Python
+# change here to user server's username/password
+_id = ""            #server ID
+password = ""       #server password
+```
+
+```Python
+# change here to use search engine you want
+self.driver.get('http://www.bing.com')  # bing
+self.driver.get('http://www.duckduckgo.com') #duckduckgo
+```
+
+```Python
+# change here to your VM's IP address
+if "10.0." not in source_address:
+    direction = '-'
+```
+
 
 ## 3. Keywords
 
 For our work, we utilized the [Keyword Tool website](https://keywordtool.io/) to extract the top 273 frequently searched keywords as monitored keywords. However, you can change the `sites.txt` file for any keywords you want to visit.
 
-## 4. Contacts
-Please contact us if you have any questions about KF-Crawler.
+
+## 4. Run KF-tbcrawler
+
+You can run KF-tbcrawler with command below:
+
+```bash
+make build  # build first
+make run    # and run
+```
+
+
+## 5. Contacts
+Please contact us if you have any questions about KF-tbcrawler.
 
 - Chai Won Hwang, ifetayo@ewhain.net
 - Haeseung Jeon, haeseungjeon@ewha.ac.kr
