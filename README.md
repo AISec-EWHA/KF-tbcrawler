@@ -42,5 +42,6 @@ For our work, we utilized the [Keyword Tool website](https://keywordtool.io/) to
 ## 4. Contacts
 Please contact us if you have any questions about KF-Crawler.
 
+- Chai Won Hwang, ifetayo@ewhain.net
 - Haeseung Jeon, haeseungjeon@ewha.ac.kr
 - Se Eun Oh, seoh@ewha.ac.kr
