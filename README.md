@@ -37,7 +37,7 @@ $ ifconfig
 
 ## 3. Keywords
 
-For our work, we utilized the [Keyword Tool website](https://keywordtool.io/) to extract the top 273 frequently searched keywords as monitored keywords. However, you can change the `top_273.txt` file for any keywords you want to visit.
+For our work, we utilized the [Keyword Tool website](https://keywordtool.io/) to extract the top 273 frequently searched keywords as monitored keywords. However, you can change the `sites.txt` file for any keywords you want to visit.
 
 ## 4. Contacts
 Please contact us if you have any questions about KF-Crawler.
